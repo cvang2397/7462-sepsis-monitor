@@ -114,4 +114,5 @@ sepsis_ds2 <- sepsis_ds %>%
 
 sepsis_ds2 %>%
   kable()
+  
 ```
