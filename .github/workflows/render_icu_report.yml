@@ -1,0 +1,42 @@
+name: Render ICU Status Report
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v1
+        with:
+          r-version: '4.1.0'
+
+      - name: Install packages
+        run: |
+          install.packages("rmarkdown")
+          install.packages("tidyverse")
+          install.packages("knitr")
+          install.packages("kableExtra")
+          install.packages("ggplot2")
+
+      - name: Render report
+        run: R -e "rmarkdown::render('ICU status report.qmd', output_file = 'ICU_status_report.html')"
+
+      - name: Commit changes
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "GitHub Actions"
+          git add ICU_status_report.html
+          git commit -m "Update ICU status report"
+      
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
