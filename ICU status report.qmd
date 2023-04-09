@@ -113,6 +113,6 @@ sepsis_ds2 <- sepsis_ds %>%
   select(-date)
 
 sepsis_ds2 %>%
-  kable()
+  kable() 
   
 ```
