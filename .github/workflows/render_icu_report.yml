@@ -2,10 +2,6 @@ on: [workflow_dispatch]
 
 name: Render ICU Status Report
 
-on:
-  schedule:
-    - cron: "0 * * * *"
-
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
