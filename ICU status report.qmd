@@ -19,7 +19,7 @@ library(ggplot2)
 ## This is needed to make the GitHub Action work
 drive_deauth()
 
-file_link <- "https://drive.google.com/file/d/1NSAbKIWXs5NFmA9otR4SpAdkF59e2YU8/view?usp=sharing"
+file_link <- "https://drive.google.com/file/d/1Ka2m0185tm2_9CJksIv1OFXHtHEiFEm8/view?usp=sharing"
 
 ## All data up until now
 new_data <- updateData(file_link)
@@ -29,27 +29,89 @@ most_recent_data <- new_data %>%
   group_by(PatientID) %>%
   filter(obsTime == max(obsTime))
 
+## Include all data
+sepsis_ds <- read_csv("sepsis_data3.csv", col_types = cols(.default = "c"))
+
 ```
 
-Sepsis Patient Characteristics Table
+Vital Sign Monitoring of Sepsis Patients Table
 
 ```{r}
 #sepsis table report 
-sepsis_table <- most_recent_data %>%
+sepsis_table <- sepsis_ds %>%
   mutate(Sepsis_status = factor(SepsisLabel, levels = 0:1, labels = c("No Sepsis", "Sepsis"))) %>% 
   filter(Sepsis_status == "Sepsis") %>%
-  select(PatientID, HR, Temp, Resp, Sepsis_status)
+  select(PatientID, HR, Temp, Resp, Sepsis_status) 
 
 sepsis_table %>%
   kable()
   
 ```
 
-Sepsis Patient Characteristics Plot
+Vital Sign Monitoring of Sepsis Patients Plot
 
 ```{r}
-ggplot(sepsis_table, aes(x = HR)) +
-  geom_point()
+sepsis_table2 <- sepsis_ds %>%
+  filter(SepsisLabel == 1) %>%
+  mutate(date = date(obsTime),
+         HR = as.numeric(HR),
+         Temp = as.numeric(Temp),
+         Resp = as.numeric(Resp)) %>%
+  select(PatientID, HR, Temp, Resp, date, SepsisLabel) %>%
+  pivot_longer(-c(PatientID, date, SepsisLabel), names_to = "var_name", values_to = "value") %>%
+  filter(!is.na(value))
 
+# patient id
+patient_ids <- unique(sepsis_table2$PatientID)
 
+plot_list <- list()
+
+# loop through each PatientID and create a plot
+for (id in patient_ids) {
+  df <- sepsis_table2 %>% filter(PatientID == id)
+  
+  p <- ggplot(df, aes(x = date, y = value, color = var_name)) +
+         geom_point() +
+         geom_text(aes(label = round(value, 1)), nudge_y = 4, 
+            hjust = 4, check_overlap = TRUE) +
+         theme_classic() +
+         labs(x = "Date" , y = "Value", color = "Vital Sign Variables",
+              title = paste("Vital Signs Monitoring for Patient", id))
+  
+  plot_list[[id]] <- p
+}
+
+# printing the plots 
+for (id in patient_ids) {
+  print(plot_list[[id]])
+}
+
+```
+
+Variations in Vital Sign Measurements Across All Patients
+
+```{r}
+sepsis_ds2 <- sepsis_ds %>%
+  mutate(date = date(obsTime)) %>%
+  group_by(PatientID, date) %>%
+  arrange(PatientID, date) %>%
+  mutate(HR = as.numeric(HR),
+         Temp = as.numeric(Temp),
+         Resp = as.numeric(Resp),
+         HR_diff = HR - lag(HR),
+         Temp_diff = Temp - lag(Temp),
+         Resp_diff = Resp - lag(Resp)) %>%
+  mutate(HR_diff = ifelse(is.na(HR_diff), 0, HR_diff),
+         Temp_diff = ifelse(is.na(Temp_diff), 0, Temp_diff),
+         Resp_diff = ifelse(is.na(Resp_diff), 0, Resp_diff)) %>%
+  ungroup() %>%
+  group_by(PatientID) %>%
+  summarize(date = min(date),
+            HR_diff = sum(HR_diff, na.rm = TRUE),
+            Temp_diff = sum(Temp_diff, na.rm = TRUE),
+            Resp_diff = sum(Resp_diff, na.rm = TRUE)) %>%
+  select(-date)
+
+sepsis_ds2 %>%
+  kable()
 ```
