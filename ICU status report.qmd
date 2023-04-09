@@ -1,0 +1,55 @@
+---
+title: "ICU Status Report"
+author: "Charly Vang"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: journal
+    toc: yes
+    toc_float: true
+---
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(knitr)
+library(ggplot2)
+
+## Calling drive_deauth() prevents R from trying to authenticate via a browser
+## This is needed to make the GitHub Action work
+drive_deauth()
+
+file_link <- "https://drive.google.com/file/d/1NSAbKIWXs5NFmA9otR4SpAdkF59e2YU8/view?usp=sharing"
+
+## All data up until now
+new_data <- updateData(file_link)
+
+## Include only most recent data
+most_recent_data <- new_data %>%
+  group_by(PatientID) %>%
+  filter(obsTime == max(obsTime))
+
+```
+
+Sepsis Patient Characteristics Table
+
+```{r}
+#sepsis table report 
+sepsis_table <- most_recent_data %>%
+  mutate(Sepsis_status = factor(SepsisLabel, levels = 0:1, labels = c("No Sepsis", "Sepsis"))) %>% 
+  filter(Sepsis_status == "Sepsis") %>%
+  select(PatientID, HR, Temp, Resp, Sepsis_status)
+
+sepsis_table %>%
+  kable()
+  
+```
+
+Sepsis Patient Characteristics Plot
+
+```{r}
+ggplot(sepsis_table, aes(x = HR)) +
+  geom_point()
+
+
+```
