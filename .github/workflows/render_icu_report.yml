@@ -1,3 +1,5 @@
+on: [workflow_dispatch]
+
 name: Render ICU Status Report
 
 on:
@@ -26,17 +28,17 @@ jobs:
           install.packages("ggplot2")
 
       - name: Render report
-        run: R -e "rmarkdown::render('ICU status report.qmd', output_file = 'ICU_status_report.html')"
-
-      - name: Commit changes
-        run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "GitHub Actions"
-          git add ICU_status_report.html
-          git commit -m "Update ICU status report"
-      
-      - name: Push changes
-        uses: ad-m/github-push-action@master
+        uses: quarto-dev/quarto-actions/render@v2
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: main
+          to: gfm
+          path: "ICU status report.qmd"
+
+      - name: Setup git config
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "<>"
+      - name: Commit
+        run: |
+          git add .
+          git commit -m "Updated report"
+          git push origin main
